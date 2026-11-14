@@ -850,6 +850,9 @@ def history_list(
     """Your saved chats, newest first. Continue one with: kunji chat --resume <id>"""
     if ctx.invoked_subcommand:
         return
+    if limit <= 0:
+        error("--limit must be greater than 0.", "Usage: kunji history --limit 20")
+        raise typer.Exit(2)
     from kunji import history
 
     cfg = load_config()

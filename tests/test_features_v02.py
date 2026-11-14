@@ -164,6 +164,15 @@ def test_history_cli():
     assert runner.invoke(app, ["history", "delete", rec.id]).exit_code == 0
 
 
+def test_history_limit_rejects_zero_and_negative():
+    result = runner.invoke(app, ["history", "--limit", "0"])
+    assert result.exit_code == 2
+    assert "limit must be greater than 0" in result.output.lower()
+    result = runner.invoke(app, ["history", "--limit", "-5"])
+    assert result.exit_code == 2
+    assert "limit must be greater than 0" in result.output.lower()
+
+
 def test_chat_session_saves_and_resumes(monkeypatch):
     from kunji.chat import ChatSession
 
