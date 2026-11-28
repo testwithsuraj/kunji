@@ -182,3 +182,47 @@ def test_budget_uses_display_currency_and_usd_rate():
     assert status.state == "warn"
     assert status.spent == 840.0
     assert status.limit == 1000.0
+
+
+def test_ledger_fresh_install_no_crash():
+    """A fresh install with no usage.jsonl must not crash on any ledger access."""
+    path = usage.ledger_path()
+    assert not path.exists(), "Ledger should not exist in a fresh install"
+
+    assert usage.entries() == []
+    assert usage.entries(since=0.0) == []
+    assert usage.spent_today_usd() == 0.0
+    assert usage.spent_today_usd(provider="openai") == 0.0
+    assert usage.summary(7) == []
+    assert usage.summary(1) == []
+
+    cfg = Config.load()
+    status = usage.check_budget(cfg, "openai")
+    assert status.state == "none"
+
+
+def test_ledger_empty_file_produces_zero_results():
+    """An existing but empty usage.jsonl must behave identically to a missing file."""
+    path = usage.ledger_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("", encoding="utf-8")
+
+    assert usage.entries() == []
+    assert usage.entries(since=0.0) == []
+    assert usage.spent_today_usd() == 0.0
+    assert usage.summary(7) == []
+
+    cfg = Config.load()
+    assert usage.check_budget(cfg, "openai").state == "none"
+
+
+def test_ledger_with_invalid_lines_is_tolerated():
+    """A ledger containing only garbage/invalid
+    lines must not crash and must return zero results."""
+    path = usage.ledger_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("not json\n\n{broken\n", encoding="utf-8")
+
+    assert usage.entries() == []
+    assert usage.spent_today_usd() == 0.0
+    assert usage.summary(7) == []
